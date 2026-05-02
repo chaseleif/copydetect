@@ -11,6 +11,7 @@ import importlib.resources
 import io
 import base64
 import json
+import os
 
 from tqdm import tqdm
 import numpy as np
@@ -195,6 +196,8 @@ class CopyDetector:
         (reference_directories) A list of directories to search for
         files to compare the test files to. This should generally be a
         superset of test_directories
+    exclude_patterns: list
+        A list of regex patterns to exclude files or directories
     boilerplate_dirs : list
         (boilerplate_directories) A list of directories containing
         boilerplate code. Matches between fingerprints present in the
@@ -248,6 +251,7 @@ class CopyDetector:
         detect file encoding
     """
     def __init__(self, test_dirs=None, ref_dirs=None,
+                 exclude_patterns=None,
                  boilerplate_dirs=None, extensions=None,
                  noise_t=defaults.NOISE_THRESHOLD,
                  guarantee_t=defaults.GUARANTEE_THRESHOLD,
@@ -265,13 +269,16 @@ class CopyDetector:
         self.conf = CopydetectConfig(**conf_args)
 
         self.test_files = self._get_file_list(
-            self.conf.test_dirs, self.conf.extensions
+            self.conf.test_dirs, self.conf.extensions,
+            self.conf.exclude_regexes
         )
         self.ref_files = self._get_file_list(
-            self.conf.ref_dirs, self.conf.extensions
+            self.conf.ref_dirs, self.conf.extensions,
+            self.conf.exclude_regexes
         )
         self.boilerplate_files = self._get_file_list(
-            self.conf.boilerplate_dirs, self.conf.extensions
+            self.conf.boilerplate_dirs, self.conf.extensions,
+            self.conf.exclude_regexes
         )
 
         # before run() is called, similarity data should be empty
@@ -298,25 +305,28 @@ class CopyDetector:
         params = CopydetectConfig.normalize_json(config)
         return cls(**params)
 
-    def _get_file_list(self, dirs, exts):
+    def _get_file_list(self, dirs, exts, exclude):
         """Recursively collects list of files from provided
         directories. Used to search test_dirs, ref_dirs, and
         boilerplate_dirs
         """
         file_list = []
         for dir in dirs:
-            print_warning = True
+            #if include and not any(i.match(dir) for i in include):
+            if any(x.match(dir) for x in exclude):
+                continue
+            files = []
             for ext in exts:
                 if ext == "*":
                     matched_contents = Path(dir).rglob("*")
                 else:
                     matched_contents = Path(dir).rglob("*."+ext.lstrip("."))
-                files = [str(f) for f in matched_contents if f.is_file()]
-
-                if len(files) > 0:
-                    print_warning = False
+                files.extend([str(f) for f in matched_contents if f.is_file()])
+            files = [f for f in files if not \
+                any(x.match(p) for x in exclude for p in f.split(os.path.sep))]
+            if len(files) > 0:
                 file_list.extend(files)
-            if print_warning:
+            else:
                 logging.warning("No files found in " + dir)
 
         # convert to a set to remove duplicates, then back to a list

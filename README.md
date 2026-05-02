@@ -24,6 +24,7 @@ Configuration options can be provided either by using the command line arguments
 
 - `test_directories` (`-t`, `--test-dirs`): a list of directories to recursively search for files to check for plagiarism.
 - `reference_directories` (`-r`, `--ref-dirs`): a list of directories to search for files to compare the test files to. This should generally be a superset of `test_directories`. If not provided, the test directories are used as reference directories.
+- `exclude_patterns` (`-x`, `--exclude-patterns`): a list of regular expressions which to exclude files. Non-JSON escape sequences (for example, `\d` and `\.`) must be written with an escaped slash `\\`. Any containing directory- or file- name will cause files to be excluded.
 - `boilerplate_directories` (`-b`, `--boilerplate-dirs`): a list of directories containing boilerplate code. Matches between fingerprints present in the boilerplate code will not be considered plagiarism.
 - `extensions` (`-e`, `--extensions`): a list of file extensions containing code the detector should look at.
 - `noise_threshold` (`-n`, `--noise-thresh`): the smallest sequence of matching characters between two files which should be considered plagiarism. Note that tokenization and filtering replaces variable names with `V`, function names with `F`, object names with `O`, and strings with `S` so the threshold should be lower than you would expect from the original code.

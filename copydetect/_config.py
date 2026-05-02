@@ -1,9 +1,9 @@
+import re
 from dataclasses import dataclass, field, asdict
-from typing import Optional, List, Dict, ClassVar
+from typing import Optional, List, Dict, ClassVar, Pattern
 from pathlib import Path
 
 from copydetect import defaults
-
 
 @dataclass
 class CopydetectConfig:
@@ -14,6 +14,9 @@ class CopydetectConfig:
 
     test_dirs: List[str] = field(default_factory=lambda: [])
     ref_dirs: Optional[List[str]] = field(default_factory=lambda: [])
+    exclude_patterns: Optional[List[str]] = None
+    # v3.8 and earlier use typing.Pattern, deprecated since 3.9 for re.Pattern
+    exclude_regexes: Optional[Pattern[str]] = ()
     boilerplate_dirs: Optional[List[str]] = field(default_factory=lambda: [])
     extensions: Optional[List[str]] = field(default_factory=lambda: ["*"])
     noise_t: int = defaults.NOISE_THRESHOLD
@@ -46,6 +49,9 @@ class CopydetectConfig:
             raise TypeError("Test directories must be a list")
         if not isinstance(self.ref_dirs, list):
             raise TypeError("Reference directories must be a list")
+        if self.exclude_patterns is not None:
+            if not isinstance(self.exclude_patterns, list):
+                raise TypeError("Exclude patterns must be a list")
         if not isinstance(self.extensions, list):
             raise TypeError("extensions must be a list")
         if not isinstance(self.boilerplate_dirs, list):
@@ -115,6 +121,8 @@ class CopydetectConfig:
         del dict_params["autoopen"]
         if self.force_language is None:
             del dict_params["force_language"]
+        if "exclude_regexes" in dict_params:
+            del dict_params["exclude_regexes"]
         return dict_params
 
     @staticmethod
@@ -140,3 +148,6 @@ class CopydetectConfig:
         self.out_file = self.normalize_outfile(self.out_file)
         self.window_size = self.guarantee_t - self.noise_t + 1
         self._check_arguments()
+        if self.exclude_patterns is not None:
+            self.exclude_regexes = [re.compile(pattern) \
+                                    for pattern in self.exclude_patterns]

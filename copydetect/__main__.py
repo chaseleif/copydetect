@@ -29,6 +29,10 @@ def main():
                         help="list of directories to recursively search for "
                         "files to compare the test files to. If left empty, "
                         "the test directories themselves are used")
+    parser.add_argument("-x", "--exclude-patterns", nargs='+',
+                        metavar="EXCLUDE-PATTERNS",
+                        help="list of regex patterns of files and directories "
+                             "to exclude files to check for plagairism")
     parser.add_argument("-b", "--boilerplate-dirs", nargs='+',
                         metavar="BOILERPLATE-DIRECTORY", default=[],
                         help="list of directories to recursively search for "
@@ -104,6 +108,7 @@ def main():
         config = {
           "test_directories" : args.test_dirs,
           "reference_directories" : args.ref_dirs,
+          "exclude_patterns" : args.exclude_patterns,
           "boilerplate_directories" : args.boilerplate_dirs,
           "extensions" : args.extensions,
           "noise_threshold" : args.noise_thresh,
